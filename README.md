@@ -1,6 +1,6 @@
 <p align="center" style="background-color:white">
  <a href="https://www.ravn.co/" rel="noopener">
- <img src="https://www.ravn.co/img/logo-ravn.png" alt="RAVN logo"></a>
+ <img src="src/ravn_logo.png" alt="RAVN logo" width="150px"></a>
 </p>
 <p align="center">
  <a href="https://www.postgresql.org/" rel="noopener">
@@ -41,7 +41,7 @@ Open your terminal and run the follows commands:
 1. This will create a container for postgresql:
 
 ```
-docker run --name nerdery-container -e POSTGRES_PASSWORD=password123 -p 5432:5432 -d --rm postgres:13.0
+docker run --name nerdery-container -e POSTGRES_PASSWORD=password123 -p 5432:5432 -d --rm postgres:15.2
 ```
 
 2. Now, we access the container:
@@ -56,10 +56,15 @@ docker exec -it -u postgres nerdery-container psql
 create database nerdery_challenge;
 ```
 
+5. Close the database connection:
+```
+\q
+```
+
 4. Restore de postgres backup file
 
 ```
-cat /.../src/dump.sql | docker exec -i nerdery-container psql -U postgres -d nerdery_challenge
+cat /.../dump.sql | docker exec -i nerdery-container psql -U postgres -d nerdery_challenge
 ```
 
 - Note: The `...` mean the location where the src folder is located on your computer
@@ -69,84 +74,117 @@ cat /.../src/dump.sql | docker exec -i nerdery-container psql -U postgres -d ner
 
 ## 📊 Excersises <a name = "excersises"></a>
 
-Now it's your turn to write SQL querys to achieve the following results:
+Now it's your turn to write SQL queries to achieve the following results (You need to write the query in the section `Your query here` on each question):
 
-1. Count the total number of states in each country.
+1. Total money of all the accounts group by types.
+
+```
+SELECT type, SUM(mount) AS mount_per_type FROM accounts GROUP BY type;
+```
+
+
+2. How many users with at least 2 `CURRENT_ACCOUNT`.
+
+```
+WITH UsersGroupedBy AS
+(SELECT users.name, 
+COUNT(accounts.user_id)  as total_users_count FROM users LEFT JOIN accounts ON users.id = accounts.user_id 
+WHERE accounts.type = 'CURRENT_ACCOUNT' GROUP BY users.name 
+    HAVING COUNT(accounts.user_id) >= 2
+)
+SELECT COUNT(name) FROM UsersGroupedBy;
+```
+
+
+3. List the top five accounts with more money.
+
+```
+SELECT * FROM accounts ORDER BY mount DESC LIMIT 5;
+```
+
+
+4. Get the three users with the most money after making movements.
+
+```
+SELECT u.id, u.name, u.last_name, SUM(a.mount) + COALESCE(SUM(m_in.mount), 0) - COALESCE(SUM(m_out.mount), 0) AS total_money
+FROM users u
+JOIN accounts a ON u.id = a.user_id
+LEFT JOIN movements m_in ON a.id = m_in.account_to
+LEFT JOIN movements m_out ON a.id = m_out.account_from
+GROUP BY u.id, u.name, u.last_name
+ORDER BY total_money DESC
+LIMIT 3;
+
+```
+
+
+5. In this part you need to create a transaction with the following steps:
+
+    a. First, get the ammount for the account `3b79e403-c788-495a-a8ca-86ad7643afaf` and `fd244313-36e5-4a17-a27c-f8265bc46590` after all their movements.
+    ```
+    ```
+    
+    b. Add a new movement with the information:
+        from: `3b79e403-c788-495a-a8ca-86ad7643afaf` make a transfer to `fd244313-36e5-4a17-a27c-f8265bc46590`
+        mount: 50.75
+    ```
+    ```
+
+    c. Add a new movement with the information:
+        from: `3b79e403-c788-495a-a8ca-86ad7643afaf` 
+        type: OUT
+        mount: 731823.56
+    ```
+    ```
+
+        * Note: if the account does not have enough money you need to reject this insert and make a rollback for the entire transaction
+    
+    d. Put your answer here if the transaction fails(YES/NO):
+    ```
+    ```
+
+    e. If the transaction fails, make the correction on step _c_ to avoid the failure:
+    ```
+   
+    ```
+
+    f. Once the transaction is correct, make a commit
+    ```
+    ```
+
+    e. How much money the account `fd244313-36e5-4a17-a27c-f8265bc46590` have:
+    ```
+
+    ```
+
+
+6. All the movements and the user information with the account `3b79e403-c788-495a-a8ca-86ad7643afaf`
+
+```
+SELECT u.id, u.name, u.last_name, u.email, m.id as movement_id, m.type as movement_type, m.account_from, m.account_to, m.mount, m.created_at as movement_created_at
+FROM movements m
+JOIN accounts a ON (a.id = m.account_from OR a.id = m.account_to)
+JOIN users u ON u.id = a.user_id
+WHERE a.id = '3b79e403-c788-495a-a8ca-86ad7643afaf';
+```
+
+
+7. The name and email of the user with the highest money in all his/her accounts
+
+```
+SELECT u.name, u.email, SUM(a.mount) + COALESCE(SUM(m_in.mount), 0) - COALESCE(SUM(m_out.mount), 0) AS total_money
+FROM users u
+JOIN accounts a ON u.id = a.user_id
+LEFT JOIN movements m_in ON a.id = m_in.account_to
+LEFT JOIN movements m_out ON a.id = m_out.account_from
+GROUP BY u.id, u.name, u.email
+ORDER BY total_money DESC
+LIMIT 1;
+```
+
+
+8. Show all the movements for the user `Kaden.Gusikowski@gmail.com` order by account type and created_at on the movements table
 
 ```
 Your query here
 ```
-
-<p align="center">
- <img src="src/results/result1.png" alt="result_1"/>
-</p>
-
-2. How many employees do not have supervisores.
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result2.png" alt="result_2"/>
-</p>
-
-3. List the top five offices address with the most amount of employees, order the result by country and display a column with a counter.
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result3.png" alt="result_3"/>
-</p>
-
-4. Three supervisors with the most amount of employees they are in charge.
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result4.png" alt="result_4"/>
-</p>
-
-5. How many offices are in the state of Colorado (United States).
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result5.png" alt="result_5"/>
-</p>
-
-6. The name of the office with its number of employees ordered in a desc.
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result6.png" alt="result_6"/>
-</p>
-
-7. The office with more and less employees.
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result7.png" alt="result_7"/>
-</p>
-
-8. Show the uuid of the employee, first_name and lastname combined, email, job_title, the name of the office they belong to, the name of the country, the name of the state and the name of the boss (boss_name)
-
-```
-Your query here
-```
-
-<p align="center">
- <img src="src/results/result8.png" alt="result_8"/>
-</p>
