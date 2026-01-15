@@ -37,6 +37,30 @@ GROUP BY offices.name
 ORDER BY count DESC;
 
 -- 7
+(
+    SELECT
+        o.address,
+        COUNT(e.id) AS employees_count
+    FROM offices o
+    LEFT JOIN employees e ON o.id = e.office_id
+    GROUP BY o.address
+    ORDER BY employees_count ASC, o.address
+    LIMIT 1
+)
+UNION ALL
+(
+    SELECT
+        o.address,
+        COUNT(e.id) AS employees_count
+    FROM offices o
+    LEFT JOIN employees e ON o.id = e.office_id
+    GROUP BY o.address
+    ORDER BY employees_count DESC, o.address
+    LIMIT 1
+)
+ORDER BY employees_count DESC;
+
+-- 8
 SELECT e.uuid, CONCAT(e.first_name,' ',e.last_name) as full_name,
 e.email,
 e.job_title, 
@@ -47,4 +71,4 @@ es.first_name as supervisor_name FROM employees e
 LEFT JOIN offices ON e.office_id = offices.id 
 LEFT JOIN employees es ON e.supervisor_id = es.id 
 LEFT JOIN countries ON offices.country_id = countries.id 
-RIGHT JOIN states ON states.country_id = countries.id;     
+RIGHT JOIN states ON states.country_id = countries.id;   
