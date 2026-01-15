@@ -37,28 +37,19 @@ GROUP BY offices.name
 ORDER BY count DESC;
 
 -- 7
-(
-    SELECT
-        o.address,
-        COUNT(e.id) AS employees_count
+WITH GroupedCount AS (
+    SELECT 
+        o.address as Address,
+        COUNT(e.id) AS employee_count
     FROM offices o
     LEFT JOIN employees e ON o.id = e.office_id
     GROUP BY o.address
-    ORDER BY employees_count ASC, o.address
-    LIMIT 1
+    HAVING COUNT(e.id) > 0
 )
+(SELECT Address, employee_count FROM GroupedCount ORDER BY employee_count DESC LIMIT 1)
 UNION ALL
-(
-    SELECT
-        o.address,
-        COUNT(e.id) AS employees_count
-    FROM offices o
-    LEFT JOIN employees e ON o.id = e.office_id
-    GROUP BY o.address
-    ORDER BY employees_count DESC, o.address
-    LIMIT 1
-)
-ORDER BY employees_count DESC;
+(SELECT Address, employee_count FROM GroupedCount ORDER BY employee_count ASC LIMIT 1)
+ORDER BY employee_count DESC;
 
 -- 8
 SELECT e.uuid, CONCAT(e.first_name,' ',e.last_name) as full_name,
