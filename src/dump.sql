@@ -66,6 +66,7 @@ ALTER TABLE public.accounts OWNER TO postgres;
 -- Name: movements; Type: TABLE; Schema: public; Owner: postgres
 --
 
+
 CREATE TABLE public.movements (
     id uuid NOT NULL,
     type public.type_movement NOT NULL,
