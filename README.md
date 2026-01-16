@@ -106,6 +106,26 @@ SELECT * FROM accounts ORDER BY mount DESC LIMIT 5;
 4. Get the three users with the most money after making movements.
 
 ```
+WITH total_mount_in AS (
+  SELECT
+    a.id,
+    a.user_id,
+    a.mount + COALESCE(SUM(CASE WHEN m.account_to = a.id THEN m.mount ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN m.account_from = a.id AND m.type = 'IN' THEN m.mount ELSE 0 END), 0) AS mount_account
+  FROM accounts a
+  LEFT JOIN movements m
+    ON m.account_to = a.id OR m.account_from = a.id
+  GROUP BY a.id, a.user_id, a.mount
+),
+total_real_mount AS(
+ select tot.id, tot.user_id,   
+ tot.mount_account - COALESCE(SUM(CASE WHEN m.account_from = tot.id AND m.type IN ('OUT', 'OTHER') THEN m.mount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN m.account_from = tot.id AND m.account_to IS NOT NULL THEN m.mount ELSE 0 END), 0) AS mount_account_real
+ from total_mount_in tot
+ LEFT JOIN movements m ON m.account_from = tot.id
+ GROUP BY tot.id, tot.user_id, tot.mount_account
+)
+select users.name, users.last_name, users.email, SUM(total_real_mount.mount_account_real),users.id FROM total_real_mount 
+LEFT JOIN users ON total_real_mount.user_id = users.id
+GROUP BY users.name, users.last_name, users.email, users.id ORDER BY SUM(total_real_mount.mount_account_real) DESC LIMIT 3;
 
 ```
 
