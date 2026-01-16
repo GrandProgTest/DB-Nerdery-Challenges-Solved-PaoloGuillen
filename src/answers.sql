@@ -86,7 +86,7 @@ INSERT INTO movements(id, type, account_from, account_to, mount, created_at, upd
 VALUES('426647b2-9abd-4b9a-a987-624022b37437', 'TRANSFER', '3b79e403-c788-495a-a8ca-86ad7643afaf', 'fd244313-36e5-4a17-a27c-f8265bc46590', 50.75, NOW(), NOW());
 
 INSERT INTO movements(id, type, account_from, account_to, mount, created_at, updated_at)
-VALUES('61b11806-d674-44e3-97db-2aaba41f5784', 'TRANSFER', '3b79e403-c788-495a-a8ca-86ad7643afaf', 'fd244313-36e5-4a17-a27c-f8265bc46590', 731823.56, NOW(), NOW());
+VALUES('61b11806-d674-44e3-97db-2aaba41f5784', 'OUT', '3b79e403-c788-495a-a8ca-86ad7643afaf', 'fd244313-36e5-4a17-a27c-f8265bc46590', 731823.56, NOW(), NOW());
 
 SELECT 
     u.name, 
