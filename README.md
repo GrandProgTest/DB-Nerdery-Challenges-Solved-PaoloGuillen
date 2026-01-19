@@ -222,23 +222,14 @@ WHERE a.id = '3b79e403-c788-495a-a8ca-86ad7643afaf';
 7. The name and email of the user with the highest money in all his/her accounts
 
 ```
-WITH total_mount_in AS (
-  SELECT
-    a.id,
-    a.user_id,
-    a.mount + COALESCE(SUM(CASE WHEN m.account_to = a.id THEN m.mount ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN m.account_from = a.id AND m.type = 'IN' THEN m.mount ELSE 0 END), 0) AS mount_account
-  FROM accounts a
-  LEFT JOIN movements m
-    ON m.account_to = a.id OR m.account_from = a.id
-  GROUP BY a.id, a.user_id, a.mount
-),
-total_real_mount AS(
- select tot.id, tot.user_id,   
- tot.mount_account - COALESCE(SUM(CASE WHEN m.account_from = tot.id AND m.type IN ('OUT', 'OTHER') THEN m.mount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN m.account_from = tot.id AND m.account_to IS NOT NULL THEN m.mount ELSE 0 END), 0) AS mount_account_real
- from total_mount_in tot
- LEFT JOIN movements m ON m.account_from = tot.id
- GROUP BY tot.id, tot.user_id, tot.mount_account
-)
+SELECT u.name, u.email, SUM(a.mount) + COALESCE(SUM(m_in.mount), 0) - COALESCE(SUM(m_out.mount), 0) AS total_money
+FROM users u
+JOIN accounts a ON u.id = a.user_id
+LEFT JOIN movements m_in ON a.id = m_in.account_to
+LEFT JOIN movements m_out ON a.id = m_out.account_from
+GROUP BY u.id, u.name, u.email
+ORDER BY total_money DESC
+LIMIT 1;
 ```
 
 
