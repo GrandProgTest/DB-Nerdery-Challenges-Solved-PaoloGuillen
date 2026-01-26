@@ -221,7 +221,12 @@ WHERE a.id = '3b79e403-c788-495a-a8ca-86ad7643afaf';
 
 7. The name and email of the user with the highest money in all his/her accounts
 
+It says just the user with the highest money in her accounts 
+no movements mentioned
+
 ```
+-- Query without considering movements
+
 SELECT
     CONCAT(u.name, ' ', u.last_name) AS full_name,
     u.email,
@@ -230,6 +235,28 @@ FROM users u
 JOIN accounts a ON a.user_id = u.id
 GROUP BY u.id, u.name, u.last_name, u.email
 ORDER BY total_money DESC
+LIMIT 1;
+
+-- Query considering movements
+
+WITH account_balances AS (
+  SELECT
+    a.id,
+    a.user_id,
+    a.mount 
+      + COALESCE(SUM(CASE WHEN m.account_to = a.id THEN m.mount ELSE 0 END), 0)
+      + COALESCE(SUM(CASE WHEN m.account_from = a.id AND m.type = 'IN' THEN m.mount ELSE 0 END), 0)
+      - COALESCE(SUM(CASE WHEN m.account_from = a.id AND m.type IN ('OUT', 'OTHER') THEN m.mount ELSE 0 END), 0)
+      - COALESCE(SUM(CASE WHEN m.account_from = a.id AND m.type = 'TRANSFER' THEN m.mount ELSE 0 END), 0) AS final_balance
+  FROM accounts a
+  LEFT JOIN movements m ON m.account_to = a.id OR m.account_from = a.id
+  GROUP BY a.id, a.user_id, a.mount
+)
+SELECT CONCAT(u.name,' ', u.last_name) AS full_name, u.email, SUM(ab.final_balance) AS total_balance
+FROM account_balances ab
+LEFT JOIN users u ON ab.user_id = u.id
+GROUP BY u.name, u.last_name, u.email, u.id 
+ORDER BY total_balance DESC 
 LIMIT 1;
 
 ```
