@@ -1,6 +1,8 @@
 -- Your answers here:
 -- 1
-SELECT type, SUM(mount) AS mount_per_type FROM accounts GROUP BY type;
+SELECT type, SUM(mount) AS mount_per_type 
+FROM accounts 
+GROUP BY type;
 -- 2
 WITH UsersGroupedBy AS
 (SELECT users.name, 
@@ -106,12 +108,13 @@ JOIN users u ON u.id = a.user_id
 WHERE a.id = '3b79e403-c788-495a-a8ca-86ad7643afaf';
 
 -- 7
-SELECT u.name, u.email, SUM(a.mount) + COALESCE(SUM(m_in.mount), 0) - COALESCE(SUM(m_out.mount), 0) AS total_money
+SELECT
+    CONCAT(u.name, ' ', u.last_name) AS full_name,
+    u.email,
+    SUM(a.mount) AS total_money
 FROM users u
-JOIN accounts a ON u.id = a.user_id
-LEFT JOIN movements m_in ON a.id = m_in.account_to
-LEFT JOIN movements m_out ON a.id = m_out.account_from
-GROUP BY u.id, u.name, u.email
+JOIN accounts a ON a.user_id = u.id
+GROUP BY u.id, u.name, u.last_name, u.email
 ORDER BY total_money DESC
 LIMIT 1;
 
