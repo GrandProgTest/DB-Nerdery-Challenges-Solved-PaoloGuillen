@@ -39,7 +39,8 @@ CREATE TABLE address (
   CONSTRAINT fk_address_user
     FOREIGN KEY (user_id)
     REFERENCES "user"(id)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE password_reset_token (
@@ -52,7 +53,8 @@ CREATE TABLE password_reset_token (
   CONSTRAINT fk_password_reset_user
     FOREIGN KEY (user_id)
     REFERENCES "user"(id)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE category (
@@ -74,10 +76,14 @@ CREATE TABLE product (
   updated_at TIMESTAMP,
   CONSTRAINT fk_product_category
     FOREIGN KEY (category_id)
-    REFERENCES category(id),
+    REFERENCES category(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_product_creator
     FOREIGN KEY (created_by_user_id)
     REFERENCES "user"(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE product_image (
@@ -89,7 +95,8 @@ CREATE TABLE product_image (
   CONSTRAINT fk_product_image_product
     FOREIGN KEY (product_id)
     REFERENCES product(id)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE product_like (
@@ -100,11 +107,13 @@ CREATE TABLE product_like (
   CONSTRAINT fk_like_user
     FOREIGN KEY (user_id)
     REFERENCES "user"(id)
-    ON DELETE CASCADE,
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_like_product
     FOREIGN KEY (product_id)
     REFERENCES product(id)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 
@@ -117,7 +126,8 @@ CREATE TABLE cart (
   CONSTRAINT fk_cart_user
     FOREIGN KEY (user_id)
     REFERENCES "user"(id)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE cart_item (
@@ -129,10 +139,13 @@ CREATE TABLE cart_item (
   CONSTRAINT fk_cart_item_cart
     FOREIGN KEY (cart_id)
     REFERENCES cart(id)
-    ON DELETE CASCADE,
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_cart_item_product
     FOREIGN KEY (product_id)
     REFERENCES product(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE discount (
@@ -158,16 +171,24 @@ CREATE TABLE "order" (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_order_user
     FOREIGN KEY (user_id)
-    REFERENCES "user"(id),
+    REFERENCES "user"(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_order_cart
     FOREIGN KEY (cart_id)
-    REFERENCES cart(id),
+    REFERENCES cart(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_order_address
     FOREIGN KEY (address_id)
-    REFERENCES address(id),
+    REFERENCES address(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_order_discount
     FOREIGN KEY (discount_id)
     REFERENCES discount(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE order_item (
@@ -179,10 +200,13 @@ CREATE TABLE order_item (
   CONSTRAINT fk_order_item_order
     FOREIGN KEY (order_id)
     REFERENCES "order"(id)
-    ON DELETE CASCADE,
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
   CONSTRAINT fk_order_item_product
     FOREIGN KEY (product_id)
     REFERENCES product(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE payment (
@@ -195,7 +219,8 @@ CREATE TABLE payment (
   CONSTRAINT fk_payment_order
     FOREIGN KEY (order_id)
     REFERENCES "order"(id)
-    ON DELETE CASCADE
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 
@@ -211,6 +236,8 @@ CREATE TABLE stripe_webhook (
   CONSTRAINT fk_webhook_payment
     FOREIGN KEY (payment_id)
     REFERENCES payment(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 -- triggers logic (extra points of the challenge)
@@ -243,7 +270,7 @@ BEGIN
       VALUES ('user', notify_user, 'SEND_EMAIL_STOCK_LOW');
     END IF;
 
-    RAISE EXCEPTION 'Product % stock is low', NEW.id;
+    RAISE LOG 'Product % stock is low', NEW.id;
   END IF;
 
   RETURN NEW;
@@ -262,16 +289,15 @@ BEGIN
   IF NEW.password_hash <> OLD.password_hash THEN
     INSERT INTO audit_log (entity, entity_id, action, message)
     VALUES ('user', NEW.id, 'PASSWORD_CHANGED', 'User password was changed');
-
-    RAISE EXCEPTION
-      'Password change detected for user',
-      NEW.id;
+    RAISE LOG  'Password changed for user %', NEW.id;
+    RETURN NEW; 
+  ELSE
+    RAISE EXCEPTION 'Password must be different from previous password for user %', NEW.id;
   END IF;
-  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER password_change_trigger
-AFTER UPDATE OF password_hash ON "user"
+BEFORE UPDATE OF password_hash ON "user"
 FOR EACH ROW
 EXECUTE FUNCTION trg_password_changed();

@@ -77,7 +77,7 @@ Now it's your turn to write SQL querys to achieve the following results:
 SELECT countries.name, COUNT(country_id) 
 FROM countries 
 LEFT JOIN states 
-on countries.id = states.country_id 
+ON countries.id = states.country_id 
 GROUP BY countries.name;
 ```
 
@@ -128,10 +128,26 @@ ORDER BY count DESC LIMIT 3;
 5. How many offices are in the state of Colorado (United States).
 
 ```
+-- 5
 SELECT COUNT(offices.id) AS list_of_office FROM offices 
 LEFT JOIN states ON offices.state_id = states.id 
-WHERE states.name = 'Colorado';
+WHERE TRIM(states.name) = 'Colorado';
 ```
+
+```
+-- (Inner join version) - Mentor feedback
+SELECT COUNT(offices.id) AS list_of_office FROM offices
+INNER JOIN states ON offices.state_id = states.id
+WHERE TRIM(states.name) = 'Colorado';
+```
+```
+
+-- (Inner join version but looking out for states id) - Mentor feedback + personal enhancement given that it might not find the exact string is better look it up for id
+SELECT COUNT(offices.id) AS list_of_office FROM offices
+INNER JOIN states ON offices.state_id = states.id
+WHERE states.id = '8';
+```
+
 
 <p align="center">
  <img src="src/results/result5.png" alt="result_5"/>
@@ -153,28 +169,38 @@ ORDER BY count DESC;
 7. The office with more and less employees.
 
 ```
-(
-    SELECT
-        o.address,
-        COUNT(e.id) AS employees_count
+WITH GroupedCount AS (
+    SELECT 
+        o.address as Address,
+        COUNT(e.id) AS employee_count
     FROM offices o
     LEFT JOIN employees e ON o.id = e.office_id
     GROUP BY o.address
-    ORDER BY employees_count ASC, o.address
-    LIMIT 1
+    HAVING COUNT(e.id) > 0
 )
+(SELECT Address, employee_count FROM GroupedCount ORDER BY employee_count DESC LIMIT 1)
 UNION ALL
-(
-    SELECT
-        o.address,
-        COUNT(e.id) AS employees_count
+(SELECT Address, employee_count FROM GroupedCount ORDER BY employee_count ASC LIMIT 1)
+ORDER BY employee_count DESC;
+```
+Version without union all - Mentor feedback
+```
+WITH GroupedCount AS (
+    SELECT 
+        o.address AS office_address,
+        COUNT(e.id) AS employee_count,
+        ROW_NUMBER() OVER (ORDER BY COUNT(e.id) DESC) AS row_desc,
+        ROW_NUMBER() OVER (ORDER BY COUNT(e.id) ASC) AS row_asc
     FROM offices o
-    LEFT JOIN employees e ON o.id = e.office_id
+    INNER JOIN employees e ON o.id = e.office_id
     GROUP BY o.address
-    ORDER BY employees_count DESC, o.address
-    LIMIT 1
 )
-ORDER BY employees_count DESC;
+SELECT 
+    office_address AS address,
+    employee_count AS count
+FROM GroupedCount
+WHERE row_desc = 1 OR row_asc = 1
+ORDER BY employee_count DESC;
 ```
 
 <p align="center">
