@@ -1,4 +1,3 @@
-CREATE TYPE user_role AS ENUM ('MANAGER', 'CLIENT');
 CREATE TYPE order_status AS ENUM ('PENDING', 'PAID', 'CANCELLED');
 CREATE TYPE payment_status AS ENUM ('PENDING', 'SUCCEEDED', 'FAILED');
 CREATE TYPE webhook_status AS ENUM ('RECEIVED', 'PROCESSED', 'FAILED');
@@ -16,14 +15,25 @@ CREATE TABLE audit_log (
 -- it seems that user is a keyword in some SQL dialects, so in order to create the table
 -- it must be quoted
 
+
+CREATE TABLE role (
+  id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE
+);
+
 CREATE TABLE "user" (
   id BIGSERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  role user_role NOT NULL,
+  role_id BIGINT NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP
+  updated_at TIMESTAMP,
+  CONSTRAINT fk_user_role
+    FOREIGN KEY (role_id)
+    REFERENCES role(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
 );
 
 CREATE TABLE address (
@@ -70,18 +80,28 @@ CREATE TABLE product (
   price NUMERIC(10,2) NOT NULL,
   stock INT NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
-  category_id BIGINT NOT NULL,
   created_by_user_id BIGINT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP,
-  CONSTRAINT fk_product_category
-    FOREIGN KEY (category_id)
-    REFERENCES category(id)
-    ON DELETE RESTRICT
-    ON UPDATE CASCADE,
   CONSTRAINT fk_product_creator
     FOREIGN KEY (created_by_user_id)
     REFERENCES "user"(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+);
+
+CREATE TABLE product_category (
+  product_id BIGINT NOT NULL,
+  category_id BIGINT NOT NULL,
+  PRIMARY KEY (product_id, category_id),
+  CONSTRAINT fk_pc_product
+    FOREIGN KEY (product_id)
+    REFERENCES product(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_pc_category
+    FOREIGN KEY (category_id)
+    REFERENCES category(id)
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 );
@@ -167,7 +187,6 @@ CREATE TABLE "order" (
   status order_status NOT NULL,
   total_amount NUMERIC(10,2) NOT NULL,
   discount_amount NUMERIC(10,2) DEFAULT 0,
-  final_amount NUMERIC(10,2) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_order_user
     FOREIGN KEY (user_id)
